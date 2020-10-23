@@ -1,0 +1,271 @@
+<!-- BOUNCING BALL(s) -->
+<html>
+<head>
+<title>Bouncing Balls</title>
+
+<script type="text/javascript">
+
+var xmax = 800 
+var ymax = 600 
+var catchRange = 1600
+var g = 0.75
+var drag = 0.05
+var balls = new Array();
+var links = new Array();
+
+function dropBalls()
+{
+  var i
+  for (i in balls)
+  {
+    balls[i].held = false;
+    balls[i].colour = "green";
+  }
+}
+
+function grab(posx, posy)
+{
+  if (Math.pow(posx - this.x,2) + Math.pow(posy - this.y,2) <= catchRange)
+  {
+    this.held = true
+    this.catchOffsetX = this.x - posx
+    this.catchOffsetY = this.y - posy
+    this.colour = "red"
+    var ctx = document.getElementById('canvas').getContext('2d');
+    this.draw(ctx)
+  }
+}
+
+function catchBall(event)
+{
+  var posx = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+  var posy = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  var n
+  for (n in balls)
+  {
+    balls[n].grab(posx, posy)
+  }
+}
+
+function carry(posx, posy)
+{
+  if (!this.held) 
+  {
+    return
+  }
+  if (posx > xmax || posy > ymax || posx < 0 || posy < this.r)
+  {
+    this.held = false // drop the ball!
+  }
+  else
+  {
+    var ctx = document.getElementById('canvas').getContext('2d');
+    
+    this.erase(ctx)
+    this.x = posx + this.catchOffsetX
+    this.y = posy + this.catchOffsetY
+    this.colour = "blue"
+    this.draw(ctx)
+  }  
+}
+
+function carryBall(event)
+{
+  var posx = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+  var posy = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  var n
+  for (n in balls)
+  {
+    balls[n].carry(posx, posy)
+  }
+}
+
+function drawBall(ctx)
+{
+  ctx.beginPath();
+  ctx.fillStyle = this.colour;
+  ctx.arc(this.x,this.y,this.r,0,Math.PI*2,true);
+  ctx.fill();
+}
+
+function eraseBall(ctx)
+{
+  ctx.beginPath();
+  ctx.fillStyle = "white";
+  ctx.arc(this.x,this.y,this.r+1,0,Math.PI*2,true);
+  ctx.fill();
+}
+
+function updateBall()
+{
+  if (this.held)
+  {
+    // track speed of carry
+    this.u = this.x - this.lastx
+    this.v = this.y - this.lasty
+  }
+  else
+  {
+	  var ctx = document.getElementById('canvas').getContext('2d');
+	
+	  this.erase(ctx)
+	
+    if (!this.fixed)
+    {  
+      this.u -= drag * this.u
+      this.v += g - (drag * this.v)
+      
+		  this.x += this.u
+		  if (this.x > xmax - this.r)
+		  {
+		    this.x = xmax - (this.x - xmax) - (2 * this.r)
+		    this.u = this.e * (0 - this.u)
+		  }
+		  else if (this.x < this.r)
+		  {
+		    this.x = this.r + (this.r - this.x)
+		    this.u = this.e * (0 - this.u)
+		  }
+		
+		  this.y += this.v
+	
+		  if (this.y > ymax - this.r)
+		  {
+		     this.y = ymax - (this.y - ymax) - (2 * this.r)
+		     this.v = this.e * (0 - this.v + g)
+		  }
+		  else
+		  {
+			  if (this.y < this.r)
+			  {
+			     this.y = this.r + (this.r - this.y)
+			     this.v = this.e * (0 - this.v)
+			  }
+  		}
+    }
+    this.draw(ctx)
+  }
+
+  this.lastx = this.x
+  this.lasty = this.y
+}
+
+function linkDistance()
+{
+  var dx = this.otherBall.x - this.thisBall.x
+  var dy = this.otherBall.y - this.thisBall.y
+  return Math.sqrt(Math.pow(dx,2) + Math.pow(dy,2))
+}
+
+function updateLink()
+{
+  var newDistance = this.distance()
+  if (newDistance > 0) // this.restLength) // 0)
+  {
+    var pull = this.stiffness * (newDistance - this.restLength)
+    // damping
+    pull += 0.1 * (newDistance - this.lastDistance)
+    
+    // Resolve pull to x and y
+    pull /= newDistance
+    var pullx = pull * (this.otherBall.x - this.thisBall.x)
+    var pully = pull * (this.otherBall.y - this.thisBall.y)
+    if (!this.otherBall.fixed)
+    {
+      this.otherBall.u -= pullx
+      this.otherBall.v -= pully
+    }
+    if (!this.thisBall.fixed)
+    {
+      this.thisBall.u += pullx
+      this.thisBall.v += pully
+    }
+  }
+  this.lastDistance = newDistance
+}
+
+function link(thisBall, otherBall, stiffness)
+{
+  this.thisBall = thisBall
+  this.otherBall = otherBall
+  this.stiffness = stiffness
+  
+  // methods
+  this.distance = linkDistance
+  this.update = updateLink
+  
+  // Init value  
+  this.lastDistance = this.distance()
+  this.restLength = this.lastDistance
+}
+
+function ball(x, y, u, v, r, colour, e, fixed)
+{
+  // properties
+  this.x = x
+  this.lastx = x
+  this.y = y
+  this.lasty = y
+  this.u = u
+  this.v = v
+  this.r = r
+  this.e = e
+  this.colour = colour
+  this.fixed = fixed
+  this.held = false
+   
+  if (this.fixed)
+  {
+    this.u = 0
+    this.v = 0
+  }
+  // methods
+  this.draw = drawBall
+  this.erase = eraseBall
+  this.update = updateBall
+  this.grab = grab
+  this.carry = carry
+  
+  // Action on create
+  //var ctx = document.getElementById('canvas').getContext('2d');
+  //this.draw(ctx)
+}
+
+balls.push(new ball(300, 50, 0, 0, 10, "green", 0.9, true));
+
+for (i = 50; i <= 400; i += 50)
+{
+    balls.push(new ball(300 + i, 50, 0, 0, 10, "green", 0.9, false));
+}
+
+for (i in balls)
+{
+    if (i > 0)
+    {
+        links.push(new link(balls[i-1], balls[i], 0.5));
+    }
+}
+
+function frame()
+{
+  var n;
+  for (n in balls)
+  {
+    balls[n].update()
+  }
+  for (n in links)
+  {
+    links[n].update()
+  }
+}
+
+setInterval(frame,10);
+
+// alert ("check!")
+</script>
+</head>
+<body>
+<canvas id='canvas' width=800 height=600 style="border:1px solid black" onmousedown="catchBall(event)" onmouseup="dropBalls()" onmousemove="carryBall(event)">HTML5 Canvas is not supported by this browser.</canvas>
+</body>
+</html>
+
