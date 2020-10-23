@@ -38,8 +38,8 @@ function grab(posx, posy)
 
 function catchBall(event)
 {
-  var posx = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-  var posy = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  var posx = (event.clientX || event.touches[0].clientX) + document.body.scrollLeft + document.documentElement.scrollLeft;
+  var posy = (event.clientY || event.touches[0].clientY) + document.body.scrollTop + document.documentElement.scrollTop;
   var n
   for (n in balls)
   {
@@ -71,8 +71,8 @@ function carry(posx, posy)
 
 function carryBall(event)
 {
-  var posx = event.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-  var posy = event.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+  var posx = (event.clientX || event.touches[0].clientX) + document.body.scrollLeft + document.documentElement.scrollLeft;
+  var posy = (event.clientY || event.touches[0].clientY) + document.body.scrollTop + document.documentElement.scrollTop;
   var n
   for (n in balls)
   {
@@ -265,7 +265,10 @@ setInterval(frame,10);
 </script>
 </head>
 <body>
-<canvas id='canvas' width=800 height=600 style="border:1px solid black" onmousedown="catchBall(event)" onmouseup="dropBalls()" onmousemove="carryBall(event)">HTML5 Canvas is not supported by this browser.</canvas>
+<canvas id='canvas' width=800 height=600 style="border:1px solid black" 
+onmousedown="catchBall(event)" onmouseup="dropBalls()" onmousemove="carryBall(event)"
+ontouchstart="catchBall(event)" ontouchend="dropBalls()" ontouchmove="carryBall(event)"
+>HTML5 Canvas is not supported by this browser.</canvas>
 </body>
 </html>
 
